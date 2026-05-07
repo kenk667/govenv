@@ -1,3 +1,3 @@
-module github.com/kindo-ai/goenv
+module github.com/kenk667/govenv
 
 go 1.22
