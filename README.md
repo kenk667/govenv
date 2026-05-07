@@ -94,8 +94,8 @@ govenv --clear .venv
 2. Runs `go build -o <ENV_DIR>/<bin>` (or builds to a tempfile and symlinks if `--symlinks` is set).
 3. Writes `<ENV_DIR>/activate`, a shell script that:
    - Saves the current `PATH` into `_GOVENV_OLD_PATH`.
-   - Prepends `<ENV_DIR>` to `PATH`.
-   - Exports `GOVENV` and `GOVENV_PROMPT`.
+   - Exports `GOVENV`, `GOVENV_PROMPT`, and `GOVENV_GO_ROOT` (the last is empty unless `--go` was set).
+   - Prepends `<ENV_DIR>` to `PATH`. If `GOVENV_GO_ROOT` is set, also prepends `$GOVENV_GO_ROOT/bin` ahead of it so `go`, `gofmt`, etc. resolve to the chosen toolchain.
    - Defines a `deactivate` function that restores `PATH` and unsets the govenv variables.
 
 There is no daemon, no cache, no global state — just a directory with a binary and a shell script.
