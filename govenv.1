@@ -1,6 +1,6 @@
 .\" Manpage for govenv.
 .\" Keep in sync with the --help output in main.go and the README.
-.TH GOVENV 1 "2026-06-04" "govenv 0.1.6" "User Commands"
+.TH GOVENV 1 "2026-06-04" "govenv 0.1.7" "User Commands"
 .SH NAME
 govenv \- per-project Go environments
 .SH SYNOPSIS
@@ -125,13 +125,13 @@ source <(govenv completion bash)
 .fi
 .RE
 .PP
-For zsh, install onto your
-.B fpath
-and restart your shell:
+For zsh, add to
+.I ~/.zshrc
+(after compinit has run):
 .PP
 .RS
 .nf
-govenv completion zsh > "${fpath[1]}/_govenv"
+source <(govenv completion zsh)
 .fi
 .RE
 .PP
