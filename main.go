@@ -52,6 +52,23 @@ func main() {
 			}
 			listGo()
 			return
+		case "completion":
+			shell := ""
+			if len(os.Args) > 2 {
+				shell = os.Args[2]
+			}
+			if hasHelpFlag(os.Args[2:]) || shell == "" {
+				printCompletionHelp(os.Stderr)
+				if shell == "" {
+					os.Exit(1)
+				}
+				return
+			}
+			if err := printCompletion(os.Stdout, shell); err != nil {
+				fmt.Fprintln(os.Stderr, "govenv:", err)
+				os.Exit(1)
+			}
+			return
 		case "deactivate":
 			// Not a subcommand. Catch it so it isn't treated as an ENV_DIR
 			// name (which would create an env called "deactivate").
@@ -217,6 +234,104 @@ func printVersion(w io.Writer) {
 	}
 }
 
+func printCompletion(w io.Writer, shell string) error {
+	switch shell {
+	case "bash":
+		fmt.Fprint(w, bashCompletion)
+	case "zsh":
+		fmt.Fprint(w, zshCompletion)
+	default:
+		return fmt.Errorf("unsupported shell %q (supported: bash, zsh)", shell)
+	}
+	return nil
+}
+
+func printCompletionHelp(w io.Writer) {
+	fmt.Fprint(w, `govenv completion — print a shell completion script
+
+USAGE
+  govenv completion <bash|zsh>
+
+Completes govenv subcommands, flags, env directories, and --go toolchain
+versions. The govenv-deactivate command is completed by your shell's normal
+command-name completion once an env is active (try: govenv-<Tab>).
+
+bash — add to ~/.bashrc:
+  source <(govenv completion bash)
+
+zsh — install once onto your fpath, then restart your shell:
+  govenv completion zsh > "${fpath[1]}/_govenv"
+  # or, for the current shell only:
+  source <(govenv completion zsh)
+`)
+}
+
+// bashCompletion completes govenv for bash. (govenv-deactivate is handled by
+// bash's default command-name completion when the function is defined.)
+const bashCompletion = `# govenv bash completion
+_govenv() {
+    local cur prev
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    if [[ "$prev" == "--go" ]]; then
+        COMPREPLY=( $(compgen -W "$(govenv list-go 2>/dev/null | awk 'NR>1 {print $1}')" -- "$cur") )
+        return
+    fi
+
+    if [[ "$cur" == -* ]]; then
+        COMPREPLY=( $(compgen -W "--clear --upgrade --go --prompt --symlinks --copies --help --version" -- "$cur") )
+        return
+    fi
+
+    if [[ "$COMP_CWORD" -eq 1 ]]; then
+        COMPREPLY=( $(compgen -W "list-go version completion help" -- "$cur") )
+        COMPREPLY+=( $(compgen -d -- "$cur") )
+        return
+    fi
+
+    COMPREPLY=( $(compgen -d -- "$cur") )
+}
+complete -F _govenv govenv
+`
+
+// zshCompletion completes govenv for zsh. (govenv-deactivate is handled by
+// zsh's default command-name completion when the function is defined.)
+const zshCompletion = `#compdef govenv
+_govenv_goversions() {
+    local -a vers
+    vers=(${(f)"$(govenv list-go 2>/dev/null | awk 'NR>1 {print $1}')"})
+    compadd -a vers
+}
+_govenv() {
+    local -a cmds
+    cmds=(
+        'list-go:list Go toolchains detected under ~/sdk/'
+        'version:print the govenv version'
+        'completion:print a shell completion script'
+        'help:show help'
+    )
+    local state
+    _arguments -s \
+        '--clear[delete the env dir before creating it]' \
+        '--upgrade[rebuild and reinstall into an existing env]' \
+        '--go[use a Go toolchain under ~/sdk/]:version:_govenv_goversions' \
+        '--prompt[override the activation prompt]:name:' \
+        '--symlinks[symlink the binary into the env dir]' \
+        '--copies[copy the binary into the env dir]' \
+        '--help[show help]' \
+        '--version[print the govenv version]' \
+        '1:command or env dir:->first' \
+        '*::arg:_files -/'
+
+    if [[ "$state" == first ]]; then
+        _describe -t commands 'govenv command' cmds
+        _files -/
+    fi
+}
+compdef _govenv govenv
+`
+
 func printHelp(w io.Writer) {
 	fmt.Fprint(w, `govenv — per-project Go environments
 
@@ -225,15 +340,13 @@ USAGE
   govenv <command> [args]
 
 ACTIVATING AN ENV
-  source <ENV_DIR>/activate    enter the env  (puts its binary on PATH)
-  govenv-deactivate            exit  the env  (restores PATH)
-
-  govenv-deactivate is a shell command that 'source activate' defines in your
-  shell — no eval needed. It exists only while an env is active.
+  source <ENV_DIR>/activate    enter the env
+  govenv-deactivate            exit the env
 
 COMMANDS
   list-go         list Go toolchains detected under ~/sdk/
   version         print the govenv version (also -v / --version)
+  completion      print a shell completion script (bash or zsh)
   help            show this help
 
 OPTIONS

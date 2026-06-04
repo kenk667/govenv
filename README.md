@@ -33,6 +33,20 @@ install -m 0644 govenv.1 ~/.local/share/man/man1/govenv.1   # ensure ~/.local/sh
 
 Then `man govenv`. You can also read it straight from the repo without installing: `man ./govenv.1`.
 
+### Tab completion
+
+`govenv completion <bash|zsh>` prints a completion script that completes subcommands, flags, env directories, and `--go` toolchain versions.
+
+```sh
+# bash — add to ~/.bashrc
+source <(govenv completion bash)
+
+# zsh — install onto your fpath once, then restart your shell
+govenv completion zsh > "${fpath[1]}/_govenv"
+```
+
+`govenv-deactivate` is completed automatically by your shell's normal command-name completion whenever an env is active (`govenv-<Tab>`), so it needs no setup.
+
 ## Usage
 
 Run from a Go module directory (one containing `go.mod`):
