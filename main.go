@@ -23,8 +23,15 @@ else
     export PATH="$GOVENV:$PATH"
 fi
 
+govenv-deactivate() {
+    export PATH="$_GOVENV_OLD_PATH"
+    unset _GOVENV_OLD_PATH GOVENV GOVENV_PROMPT GOVENV_GO_ROOT
+    unset -f govenv-deactivate
+    echo "govenv: deactivated"
+}
+
 echo "govenv: activated $GOVENV_PROMPT"
-echo "govenv: to exit, run: eval \"\$(govenv deactivate)\""
+echo "govenv: to exit, run: govenv-deactivate"
 `
 
 func main() {
@@ -202,8 +209,11 @@ USAGE
 
 COMMANDS
   list-go         list Go toolchains detected under ~/sdk/
-  deactivate      print shell code to exit an active env (eval it)
+  deactivate      print shell code to exit an env (scripting fallback; eval it)
   help            show this help
+
+To exit an active env, run the govenv-deactivate command that 'source activate'
+defines in your shell (no eval needed).
 
 OPTIONS
   --clear         delete the env directory before creating it
@@ -217,7 +227,7 @@ EXAMPLES
   govenv .venv && source .venv/activate   create an env and activate it
   govenv --go 1.22.3 .venv                pin a Go toolchain
   govenv --upgrade .venv                  rebuild after code changes
-  eval "$(govenv deactivate)"             exit the active env
+  govenv-deactivate                       exit the active env
 
 Run 'govenv <command> -h' for command-specific help.
 `)
@@ -243,14 +253,18 @@ Use one when creating an env:
 func printDeactivateHelp(w io.Writer) {
 	fmt.Fprint(w, `govenv deactivate — print shell code to exit the active env
 
-Prints shell commands that restore PATH and unset the govenv variables. It does
-not change your shell on its own — you must eval its output in the current shell:
+Normally you don't need this. 'source activate' defines a govenv-deactivate
+command in your shell; just run that to exit an env:
 
-USAGE
+  govenv-deactivate
+
+This subcommand exists only as a scripting fallback. A binary cannot modify the
+shell that launched it, so it merely prints the restore commands to stdout — you
+must eval them in the current shell:
+
   eval "$(govenv deactivate)"
 
-It is a subcommand rather than a sourced shell function so it neither shadows nor
-is shadowed by Python venv's 'deactivate'. Exits non-zero if no env is active.
+Exits non-zero if no env is active.
 `)
 }
 
