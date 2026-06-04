@@ -1,6 +1,6 @@
 .\" Manpage for govenv.
 .\" Keep in sync with the --help output in main.go and the README.
-.TH GOVENV 1 "2026-06-04" "govenv 0.1.5" "User Commands"
+.TH GOVENV 1 "2026-06-04" "govenv 0.1.6" "User Commands"
 .SH NAME
 govenv \- per-project Go environments
 .SH SYNOPSIS
@@ -38,6 +38,16 @@ Print the govenv version (also
 For binaries built with
 .B go install
 this is the module tag; for a local build it is the VCS revision.
+.TP
+.B completion \fIshell\fR
+Print a shell completion script for
+.I shell
+.RB ( bash
+or
+.BR zsh ).
+See
+.B COMPLETION
+below.
 .TP
 .B help
 Show usage. Each command also accepts
@@ -99,6 +109,36 @@ unsets the govenv variables, and removes itself. The name is deliberately
 distinct from Python venv's
 .B deactivate
 so the two never shadow each other when both are active in the same shell.
+.SH COMPLETION
+.B govenv completion
+prints a completion script that completes subcommands, flags, environment
+directories, and
+.B \-\-go
+toolchain versions.
+.PP
+For bash, add to
+.IR ~/.bashrc :
+.PP
+.RS
+.nf
+source <(govenv completion bash)
+.fi
+.RE
+.PP
+For zsh, install onto your
+.B fpath
+and restart your shell:
+.PP
+.RS
+.nf
+govenv completion zsh > "${fpath[1]}/_govenv"
+.fi
+.RE
+.PP
+The
+.B govenv\-deactivate
+command is completed by the shell's normal command-name completion whenever an
+environment is active, so no extra setup is needed for it.
 .SH ENVIRONMENT
 While an environment is active, the
 .I activate
