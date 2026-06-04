@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 )
 
@@ -40,6 +41,9 @@ func main() {
 		switch os.Args[1] {
 		case "help", "-h", "--help":
 			printHelp(os.Stdout)
+			return
+		case "version", "-v", "--version", "-version":
+			printVersion(os.Stdout)
 			return
 		case "list-go":
 			if hasHelpFlag(os.Args[2:]) {
@@ -200,6 +204,39 @@ func hasHelpFlag(args []string) bool {
 	return false
 }
 
+// printVersion reports the module version embedded by the Go toolchain. For
+// `go install ...@vX.Y.Z` builds this is the tag; for a local `go build` of a
+// git checkout it is "(devel)" plus the VCS revision and commit time.
+func printVersion(w io.Writer) {
+	version := "unknown"
+	var revision, vcsTime string
+	if bi, ok := debug.ReadBuildInfo(); ok {
+		if bi.Main.Version != "" {
+			version = bi.Main.Version
+		}
+		for _, s := range bi.Settings {
+			switch s.Key {
+			case "vcs.revision":
+				revision = s.Value
+			case "vcs.time":
+				vcsTime = s.Value
+			}
+		}
+	}
+	fmt.Fprintf(w, "govenv %s\n", version)
+	if revision != "" {
+		short := revision
+		if len(short) > 12 {
+			short = short[:12]
+		}
+		if vcsTime != "" {
+			fmt.Fprintf(w, "commit %s (%s)\n", short, vcsTime)
+		} else {
+			fmt.Fprintf(w, "commit %s\n", short)
+		}
+	}
+}
+
 func printHelp(w io.Writer) {
 	fmt.Fprint(w, `govenv — per-project Go environments
 
@@ -210,6 +247,7 @@ USAGE
 COMMANDS
   list-go         list Go toolchains detected under ~/sdk/
   deactivate      print shell code to exit an env (scripting fallback; eval it)
+  version         print the govenv version (also -v / --version)
   help            show this help
 
 To exit an active env, run the govenv-deactivate command that 'source activate'
