@@ -1,6 +1,6 @@
 .\" Manpage for govenv.
 .\" Keep in sync with the --help output in main.go and the README.
-.TH GOVENV 1 "2026-06-04" "govenv 0.1.2" "User Commands"
+.TH GOVENV 1 "2026-06-04" "govenv 0.1.3" "User Commands"
 .SH NAME
 govenv \- per-project Go environments
 .SH SYNOPSIS
@@ -31,13 +31,16 @@ where the Go team's downloader installs versioned toolchains.
 detects them but does not install them.
 .TP
 .B deactivate
-Print shell code that restores
+Scripting fallback that prints shell code to restore
 .B PATH
-and unsets the govenv variables. It does not modify your shell on its own; run
-\fBeval \(dq$(govenv deactivate)\(dq\fR in the current shell. It is a subcommand
-rather than a sourced shell function so it neither shadows nor is shadowed by
-Python venv's
-.BR deactivate .
+and unset the govenv variables. To exit an env interactively you do not need
+this \(em use the
+.B govenv\-deactivate
+command described in
+.B ACTIVATION
+below. Because a binary cannot modify the shell that launched it, this
+subcommand only prints the commands; eval them in the current shell:
+\fBeval \(dq$(govenv deactivate)\(dq\fR.
 .TP
 .B help
 Show usage. Each command also accepts
@@ -68,6 +71,37 @@ Symlink the binary into the environment directory instead of copying.
 .TP
 .B \-\-copies
 Copy the binary into the environment directory (default).
+.SH ACTIVATION
+Activate an environment by sourcing its
+.I activate
+script in your current shell:
+.PP
+.RS
+.nf
+source .venv/activate
+.fi
+.RE
+.PP
+This prepends the environment to
+.BR PATH ,
+sets the
+.B GOVENV
+variables, and defines a shell function named
+.B govenv\-deactivate
+in your shell. To exit the environment, run that command:
+.PP
+.RS
+.nf
+govenv\-deactivate
+.fi
+.RE
+.PP
+It restores
+.BR PATH ,
+unsets the govenv variables, and removes itself. The name is deliberately
+distinct from Python venv's
+.B deactivate
+so the two never shadow each other when both are active in the same shell.
 .SH ENVIRONMENT
 While an environment is active, the
 .I activate
@@ -88,7 +122,7 @@ was used).
 Saved
 .B PATH
 from before activation;
-.B govenv deactivate
+.B govenv\-deactivate
 restores it.
 .SH EXAMPLES
 Create an environment and activate it:
@@ -114,7 +148,7 @@ Rebuild after code changes, then exit:
 .RS
 .nf
 govenv \-\-upgrade .venv
-eval "$(govenv deactivate)"
+govenv\-deactivate
 .fi
 .RE
 .SH SEE ALSO
