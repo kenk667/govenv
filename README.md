@@ -16,6 +16,23 @@ Go does not really have this. The standard answers are some mix of `go run ./...
 go install github.com/kenk667/govenv@latest
 ```
 
+Run `govenv --help` for an overview of commands and options, or `govenv <command> -h` (e.g. `govenv list-go -h`) for command-specific help.
+
+### Man page
+
+The repo ships a `govenv.1` man page. To install it, copy it into a directory on your `MANPATH`:
+
+```sh
+# system-wide (may need sudo)
+install -m 0644 govenv.1 /usr/local/share/man/man1/govenv.1
+
+# or per-user
+mkdir -p ~/.local/share/man/man1
+install -m 0644 govenv.1 ~/.local/share/man/man1/govenv.1   # ensure ~/.local/share/man is on MANPATH
+```
+
+Then `man govenv`. You can also read it straight from the repo without installing: `man ./govenv.1`.
+
 ## Usage
 
 Run from a Go module directory (one containing `go.mod`):
