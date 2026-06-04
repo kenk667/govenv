@@ -1,6 +1,6 @@
 .\" Manpage for govenv.
 .\" Keep in sync with the --help output in main.go and the README.
-.TH GOVENV 1 "2026-06-04" "govenv 0.1.4" "User Commands"
+.TH GOVENV 1 "2026-06-04" "govenv 0.1.5" "User Commands"
 .SH NAME
 govenv \- per-project Go environments
 .SH SYNOPSIS
@@ -29,18 +29,6 @@ List Go toolchains detected under
 where the Go team's downloader installs versioned toolchains.
 .B govenv
 detects them but does not install them.
-.TP
-.B deactivate
-Scripting fallback that prints shell code to restore
-.B PATH
-and unset the govenv variables. To exit an env interactively you do not need
-this \(em use the
-.B govenv\-deactivate
-command described in
-.B ACTIVATION
-below. Because a binary cannot modify the shell that launched it, this
-subcommand only prints the commands; eval them in the current shell:
-\fBeval \(dq$(govenv deactivate)\(dq\fR.
 .TP
 .B version
 Print the govenv version (also
