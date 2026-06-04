@@ -259,10 +259,10 @@ command-name completion once an env is active (try: govenv-<Tab>).
 bash — add to ~/.bashrc:
   source <(govenv completion bash)
 
-zsh — install once onto your fpath, then restart your shell:
-  govenv completion zsh > "${fpath[1]}/_govenv"
-  # or, for the current shell only:
+zsh — add to ~/.zshrc (after compinit runs):
   source <(govenv completion zsh)
+  # or install onto fpath, then restart your shell (rm ~/.zcompdump first):
+  govenv completion zsh > "${fpath[1]}/_govenv"
 `)
 }
 
@@ -295,14 +295,13 @@ _govenv() {
 complete -F _govenv govenv
 `
 
-// zshCompletion completes govenv for zsh. (govenv-deactivate is handled by
-// zsh's default command-name completion when the function is defined.)
+// zshCompletion completes govenv for zsh. The funcstack guard at the end makes
+// the same script work whether it is sourced (source <(govenv completion zsh))
+// or autoloaded from fpath (govenv completion zsh > "${fpath[1]}/_govenv").
+// (govenv-deactivate is handled by zsh's default command-name completion when
+// the function is defined.)
 const zshCompletion = `#compdef govenv
-_govenv_goversions() {
-    local -a vers
-    vers=(${(f)"$(govenv list-go 2>/dev/null | awk 'NR>1 {print $1}')"})
-    compadd -a vers
-}
+
 _govenv() {
     local -a cmds
     cmds=(
@@ -315,7 +314,7 @@ _govenv() {
     _arguments -s \
         '--clear[delete the env dir before creating it]' \
         '--upgrade[rebuild and reinstall into an existing env]' \
-        '--go[use a Go toolchain under ~/sdk/]:version:_govenv_goversions' \
+        '--go[use a Go toolchain under ~/sdk/]:version:->goversions' \
         '--prompt[override the activation prompt]:name:' \
         '--symlinks[symlink the binary into the env dir]' \
         '--copies[copy the binary into the env dir]' \
@@ -324,12 +323,24 @@ _govenv() {
         '1:command or env dir:->first' \
         '*::arg:_files -/'
 
-    if [[ "$state" == first ]]; then
-        _describe -t commands 'govenv command' cmds
-        _files -/
-    fi
+    case "$state" in
+        first)
+            _describe -t commands 'govenv command' cmds
+            _files -/
+            ;;
+        goversions)
+            local -a vers
+            vers=(${(f)"$(govenv list-go 2>/dev/null | awk 'NR>1 {print $1}')"})
+            _describe -t versions 'go toolchain' vers
+            ;;
+    esac
 }
-compdef _govenv govenv
+
+if [[ "$funcstack[1]" == "_govenv" ]]; then
+    _govenv "$@"
+else
+    compdef _govenv govenv
+fi
 `
 
 func printHelp(w io.Writer) {

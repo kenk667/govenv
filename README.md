@@ -41,9 +41,11 @@ Then `man govenv`. You can also read it straight from the repo without installin
 # bash — add to ~/.bashrc
 source <(govenv completion bash)
 
-# zsh — install onto your fpath once, then restart your shell
-govenv completion zsh > "${fpath[1]}/_govenv"
+# zsh — add to ~/.zshrc (after compinit has run)
+source <(govenv completion zsh)
 ```
+
+For zsh you can instead install onto your `fpath` and restart your shell (`govenv completion zsh > "${fpath[1]}/_govenv"`); if you do, delete a stale `~/.zcompdump` so the new file is picked up.
 
 `govenv-deactivate` is completed automatically by your shell's normal command-name completion whenever an env is active (`govenv-<Tab>`), so it needs no setup.
 
