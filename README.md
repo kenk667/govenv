@@ -50,7 +50,7 @@ govenv-deactivate    # restore PATH and unset govenv vars
 
 `govenv-deactivate` is a shell function that `source .venv/activate` defines in your current shell (just like Python venv's `deactivate`). It restores `PATH`, unsets the govenv variables, and removes itself. It's named `govenv-deactivate` rather than `deactivate` on purpose, so it never collides with Python venv's `deactivate` when both environments are active in the same shell.
 
-> A standalone command (`govenv deactivate` or any flag) can't do this — a binary runs in a child process and cannot modify the shell that launched it. That's also why activation uses `source`. A scripting-only `govenv deactivate` subcommand exists that prints the restore commands for `eval "$(govenv deactivate)"`, but interactively you just type `govenv-deactivate`.
+> Deactivation has to be a shell function (not a `govenv` subcommand or flag) because a binary runs in a child process and cannot modify the shell that launched it — that's also why activation uses `source`. So `govenv-deactivate` lives in your shell, defined by `activate`, and exists only while an env is active.
 
 ### Flags
 

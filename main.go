@@ -53,12 +53,12 @@ func main() {
 			listGo()
 			return
 		case "deactivate":
-			if hasHelpFlag(os.Args[2:]) {
-				printDeactivateHelp(os.Stdout)
-				return
-			}
-			deactivate()
-			return
+			// Not a subcommand. Catch it so it isn't treated as an ENV_DIR
+			// name (which would create an env called "deactivate").
+			fmt.Fprintln(os.Stderr, "govenv: 'deactivate' is not a govenv command.")
+			fmt.Fprintln(os.Stderr, "To exit an active env, run: govenv-deactivate")
+			fmt.Fprintln(os.Stderr, "(your shell defines it after 'source <ENV_DIR>/activate')")
+			os.Exit(1)
 		}
 	}
 
@@ -174,26 +174,6 @@ func build(binPath, goBin string, useSymlink bool) error {
 	return cmd.Run()
 }
 
-// deactivate prints shell code that tears down an active govenv session.
-// It is meant to be eval'd in the calling shell: eval "$(govenv deactivate)".
-// Using a subcommand instead of a sourced shell function avoids colliding with
-// Python venv's `deactivate` function.
-func deactivate() {
-	if os.Getenv("GOVENV") == "" {
-		fmt.Fprintln(os.Stderr, "govenv: no active env")
-		os.Exit(1)
-	}
-	fmt.Printf("export PATH=%s\n", shellQuote(os.Getenv("_GOVENV_OLD_PATH")))
-	fmt.Println("unset _GOVENV_OLD_PATH GOVENV GOVENV_PROMPT GOVENV_GO_ROOT")
-	fmt.Println(`echo "govenv: deactivated"`)
-}
-
-// shellQuote wraps s in single quotes, safe for POSIX shells even if s
-// contains spaces or special characters.
-func shellQuote(s string) string {
-	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
-}
-
 // hasHelpFlag reports whether args contains a help request (-h/--help/help).
 func hasHelpFlag(args []string) bool {
 	for _, a := range args {
@@ -244,14 +224,17 @@ USAGE
   govenv [options] ENV_DIR     create or manage an env in ENV_DIR
   govenv <command> [args]
 
+ACTIVATING AN ENV
+  source <ENV_DIR>/activate    enter the env  (puts its binary on PATH)
+  govenv-deactivate            exit  the env  (restores PATH)
+
+  govenv-deactivate is a shell command that 'source activate' defines in your
+  shell — no eval needed. It exists only while an env is active.
+
 COMMANDS
   list-go         list Go toolchains detected under ~/sdk/
-  deactivate      print shell code to exit an env (scripting fallback; eval it)
   version         print the govenv version (also -v / --version)
   help            show this help
-
-To exit an active env, run the govenv-deactivate command that 'source activate'
-defines in your shell (no eval needed).
 
 OPTIONS
   --clear         delete the env directory before creating it
@@ -263,9 +246,9 @@ OPTIONS
 
 EXAMPLES
   govenv .venv && source .venv/activate   create an env and activate it
+  govenv-deactivate                       exit the active env
   govenv --go 1.22.3 .venv                pin a Go toolchain
   govenv --upgrade .venv                  rebuild after code changes
-  govenv-deactivate                       exit the active env
 
 Run 'govenv <command> -h' for command-specific help.
 `)
@@ -285,24 +268,6 @@ Install a toolchain so it shows up here:
 
 Use one when creating an env:
   govenv --go 1.22.3 .venv
-`)
-}
-
-func printDeactivateHelp(w io.Writer) {
-	fmt.Fprint(w, `govenv deactivate — print shell code to exit the active env
-
-Normally you don't need this. 'source activate' defines a govenv-deactivate
-command in your shell; just run that to exit an env:
-
-  govenv-deactivate
-
-This subcommand exists only as a scripting fallback. A binary cannot modify the
-shell that launched it, so it merely prints the restore commands to stdout — you
-must eval them in the current shell:
-
-  eval "$(govenv deactivate)"
-
-Exits non-zero if no env is active.
 `)
 }
 
