@@ -1,0 +1,125 @@
+.\" Manpage for govenv.
+.\" Keep in sync with the --help output in main.go and the README.
+.TH GOVENV 1 "2026-06-04" "govenv 0.1.2" "User Commands"
+.SH NAME
+govenv \- per-project Go environments
+.SH SYNOPSIS
+.B govenv
+[\fIoptions\fR] \fIENV_DIR\fR
+.br
+.B govenv
+\fIcommand\fR [\fIargs\fR]
+.SH DESCRIPTION
+.B govenv
+automates per-project environment setup for Go modules, in the spirit of
+Python's \fBvenv\fR. Run from a Go module directory, it builds the module's
+binary into a dedicated environment directory and writes an
+.I activate
+script that puts that binary (and optionally a pinned Go toolchain) at the
+front of your
+.BR PATH .
+.PP
+There is no daemon, cache, or global state \(em just a directory containing a
+binary and a shell script.
+.SH COMMANDS
+.TP
+.B list\-go
+List Go toolchains detected under
+.IR ~/sdk/ ,
+where the Go team's downloader installs versioned toolchains.
+.B govenv
+detects them but does not install them.
+.TP
+.B deactivate
+Print shell code that restores
+.B PATH
+and unsets the govenv variables. It does not modify your shell on its own; run
+\fBeval \(dq$(govenv deactivate)\(dq\fR in the current shell. It is a subcommand
+rather than a sourced shell function so it neither shadows nor is shadowed by
+Python venv's
+.BR deactivate .
+.TP
+.B help
+Show usage. Each command also accepts
+.B \-h
+/
+.B \-\-help
+for command-specific help.
+.SH OPTIONS
+These apply to the default create/manage command
+.RB ( "govenv [options] ENV_DIR" ).
+.TP
+.B \-\-clear
+Delete the environment directory before creating it.
+.TP
+.B \-\-upgrade
+Rebuild and reinstall the binary into an existing environment.
+.TP
+.BI \-\-go " VERSION"
+Use a specific Go toolchain installed under
+.IR ~/sdk/ ", e.g. " 1.22.3 .
+.TP
+.BI \-\-prompt " NAME"
+Override the prompt prefix shown on activation (defaults to the module's
+binary name).
+.TP
+.B \-\-symlinks
+Symlink the binary into the environment directory instead of copying.
+.TP
+.B \-\-copies
+Copy the binary into the environment directory (default).
+.SH ENVIRONMENT
+While an environment is active, the
+.I activate
+script sets:
+.TP
+.B GOVENV
+Absolute path of the active environment directory.
+.TP
+.B GOVENV_PROMPT
+Prompt label shown on activation.
+.TP
+.B GOVENV_GO_ROOT
+Root of the pinned Go toolchain (empty unless
+.B \-\-go
+was used).
+.TP
+.B _GOVENV_OLD_PATH
+Saved
+.B PATH
+from before activation;
+.B govenv deactivate
+restores it.
+.SH EXAMPLES
+Create an environment and activate it:
+.PP
+.RS
+.nf
+govenv .venv
+source .venv/activate
+.fi
+.RE
+.PP
+Pin a Go toolchain:
+.PP
+.RS
+.nf
+go install golang.org/dl/go1.22.3@latest && go1.22.3 download
+govenv \-\-go 1.22.3 .venv
+.fi
+.RE
+.PP
+Rebuild after code changes, then exit:
+.PP
+.RS
+.nf
+govenv \-\-upgrade .venv
+eval "$(govenv deactivate)"
+.fi
+.RE
+.SH SEE ALSO
+.BR go (1)
+.PP
+Project home: https://github.com/kenk667/govenv
+.SH AUTHOR
+Ken K.

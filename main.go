@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -27,14 +28,27 @@ echo "govenv: to exit, run: eval \"\$(govenv deactivate)\""
 `
 
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "list-go" {
-		listGo()
-		return
-	}
-
-	if len(os.Args) > 1 && os.Args[1] == "deactivate" {
-		deactivate()
-		return
+	// Subcommand dispatch. Each command handles its own -h/--help.
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "help", "-h", "--help":
+			printHelp(os.Stdout)
+			return
+		case "list-go":
+			if hasHelpFlag(os.Args[2:]) {
+				printListGoHelp(os.Stdout)
+				return
+			}
+			listGo()
+			return
+		case "deactivate":
+			if hasHelpFlag(os.Args[2:]) {
+				printDeactivateHelp(os.Stdout)
+				return
+			}
+			deactivate()
+			return
+		}
 	}
 
 	var (
@@ -45,12 +59,7 @@ func main() {
 		copies   = flag.Bool("copies", false, "copy the binary into the env dir (default)")
 		goVer    = flag.String("go", "", "use a specific Go toolchain installed under ~/sdk/ (e.g. 1.22.3)")
 	)
-	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "usage: govenv [options] ENV_DIR")
-		fmt.Fprintln(os.Stderr, "       govenv list-go")
-		fmt.Fprintln(os.Stderr, `       eval "$(govenv deactivate)"`)
-		flag.PrintDefaults()
-	}
+	flag.Usage = func() { printHelp(os.Stderr) }
 	flag.Parse()
 
 	if flag.NArg() == 0 {
@@ -172,6 +181,77 @@ func deactivate() {
 // contains spaces or special characters.
 func shellQuote(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
+// hasHelpFlag reports whether args contains a help request (-h/--help/help).
+func hasHelpFlag(args []string) bool {
+	for _, a := range args {
+		if a == "-h" || a == "--help" || a == "help" {
+			return true
+		}
+	}
+	return false
+}
+
+func printHelp(w io.Writer) {
+	fmt.Fprint(w, `govenv — per-project Go environments
+
+USAGE
+  govenv [options] ENV_DIR     create or manage an env in ENV_DIR
+  govenv <command> [args]
+
+COMMANDS
+  list-go         list Go toolchains detected under ~/sdk/
+  deactivate      print shell code to exit an active env (eval it)
+  help            show this help
+
+OPTIONS
+  --clear         delete the env directory before creating it
+  --upgrade       rebuild and reinstall the binary into an existing env
+  --go VERSION    use a specific Go toolchain under ~/sdk/ (e.g. 1.22.3)
+  --prompt NAME   override the prompt prefix shown on activation
+  --symlinks      symlink the binary into the env dir instead of copying
+  --copies        copy the binary into the env dir (default)
+
+EXAMPLES
+  govenv .venv && source .venv/activate   create an env and activate it
+  govenv --go 1.22.3 .venv                pin a Go toolchain
+  govenv --upgrade .venv                  rebuild after code changes
+  eval "$(govenv deactivate)"             exit the active env
+
+Run 'govenv <command> -h' for command-specific help.
+`)
+}
+
+func printListGoHelp(w io.Writer) {
+	fmt.Fprint(w, `govenv list-go — list detected Go toolchains
+
+Lists Go toolchains found under ~/sdk/, where the Go team's downloader installs
+versioned toolchains. govenv detects them but does not install them.
+
+USAGE
+  govenv list-go
+
+Install a toolchain so it shows up here:
+  go install golang.org/dl/go1.22.3@latest && go1.22.3 download
+
+Use one when creating an env:
+  govenv --go 1.22.3 .venv
+`)
+}
+
+func printDeactivateHelp(w io.Writer) {
+	fmt.Fprint(w, `govenv deactivate — print shell code to exit the active env
+
+Prints shell commands that restore PATH and unset the govenv variables. It does
+not change your shell on its own — you must eval its output in the current shell:
+
+USAGE
+  eval "$(govenv deactivate)"
+
+It is a subcommand rather than a sourced shell function so it neither shadows nor
+is shadowed by Python venv's 'deactivate'. Exits non-zero if no env is active.
+`)
 }
 
 func listGo() {
