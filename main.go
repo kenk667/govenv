@@ -22,19 +22,18 @@ else
     export PATH="$GOVENV:$PATH"
 fi
 
-deactivate() {
-    export PATH="$_GOVENV_OLD_PATH"
-    unset _GOVENV_OLD_PATH GOVENV GOVENV_PROMPT GOVENV_GO_ROOT
-    unset -f deactivate
-    echo "govenv: deactivated"
-}
-
 echo "govenv: activated $GOVENV_PROMPT"
+echo "govenv: to exit, run: eval \"\$(govenv deactivate)\""
 `
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "list-go" {
 		listGo()
+		return
+	}
+
+	if len(os.Args) > 1 && os.Args[1] == "deactivate" {
+		deactivate()
 		return
 	}
 
@@ -49,6 +48,7 @@ func main() {
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "usage: govenv [options] ENV_DIR")
 		fmt.Fprintln(os.Stderr, "       govenv list-go")
+		fmt.Fprintln(os.Stderr, `       eval "$(govenv deactivate)"`)
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -152,6 +152,26 @@ func build(binPath, goBin string, useSymlink bool) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+// deactivate prints shell code that tears down an active govenv session.
+// It is meant to be eval'd in the calling shell: eval "$(govenv deactivate)".
+// Using a subcommand instead of a sourced shell function avoids colliding with
+// Python venv's `deactivate` function.
+func deactivate() {
+	if os.Getenv("GOVENV") == "" {
+		fmt.Fprintln(os.Stderr, "govenv: no active env")
+		os.Exit(1)
+	}
+	fmt.Printf("export PATH=%s\n", shellQuote(os.Getenv("_GOVENV_OLD_PATH")))
+	fmt.Println("unset _GOVENV_OLD_PATH GOVENV GOVENV_PROMPT GOVENV_GO_ROOT")
+	fmt.Println(`echo "govenv: deactivated"`)
+}
+
+// shellQuote wraps s in single quotes, safe for POSIX shells even if s
+// contains spaces or special characters.
+func shellQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }
 
 func listGo() {

@@ -8,7 +8,7 @@ Coming from Python, the local dev loop is unbeatable: `python -m venv .venv && s
 
 Go does not really have this. The standard answers are some mix of `go run ./...`, `go install`, manually managing `$GOBIN`, or shell aliases pointing at `go build` outputs. None of it composes the way `venv` does, and switching between projects that produce same-named binaries is awkward.
 
-`govenv` is an attempt to port the `venv` ergonomics to Go: one command to build the project's binary into an isolated env dir, one `source .../activate` to put it on your `PATH`, one `deactivate` to back out cleanly.
+`govenv` is an attempt to port the `venv` ergonomics to Go: one command to build the project's binary into an isolated env dir, one `source .../activate` to put it on your `PATH`, one `eval "$(govenv deactivate)"` to back out cleanly.
 
 ## Install
 
@@ -25,11 +25,13 @@ govenv .venv
 source .venv/activate
 ```
 
-That builds the module's binary (named after the `module` directive in `go.mod`) into `.venv/`, then `source .venv/activate` puts `.venv/` at the front of your `PATH` and defines a `deactivate` shell function.
+That builds the module's binary (named after the `module` directive in `go.mod`) into `.venv/`, then `source .venv/activate` puts `.venv/` at the front of your `PATH`.
 
 ```sh
-deactivate    # restore PATH and unset govenv vars
+eval "$(govenv deactivate)"    # restore PATH and unset govenv vars
 ```
+
+`deactivate` is a subcommand that prints shell code to restore your environment; `eval` applies it to the current shell. It is intentionally *not* a shell function named `deactivate`, so it won't collide with Python venv's `deactivate`.
 
 ### Flags
 
@@ -59,7 +61,7 @@ source .venv/activate
 go version    # go1.22.3
 ```
 
-While the env is active, `go`, `gofmt`, and friends resolve to the chosen toolchain. `deactivate` restores the original `PATH`.
+While the env is active, `go`, `gofmt`, and friends resolve to the chosen toolchain. `eval "$(govenv deactivate)"` restores the original `PATH`.
 
 List detected toolchains:
 
@@ -96,6 +98,7 @@ govenv --clear .venv
    - Saves the current `PATH` into `_GOVENV_OLD_PATH`.
    - Exports `GOVENV`, `GOVENV_PROMPT`, and `GOVENV_GO_ROOT` (the last is empty unless `--go` was set).
    - Prepends `<ENV_DIR>` to `PATH`. If `GOVENV_GO_ROOT` is set, also prepends `$GOVENV_GO_ROOT/bin` ahead of it so `go`, `gofmt`, etc. resolve to the chosen toolchain.
-   - Defines a `deactivate` function that restores `PATH` and unsets the govenv variables.
+
+To exit, `eval "$(govenv deactivate)"` reads `_GOVENV_OLD_PATH` and the `GOVENV*` variables from the environment and prints shell code that restores `PATH` and unsets them. It's a subcommand rather than a sourced shell function so it never shadows (or gets shadowed by) Python venv's `deactivate`.
 
 There is no daemon, no cache, no global state — just a directory with a binary and a shell script.
