@@ -102,3 +102,17 @@ govenv --clear .venv
 To exit, `eval "$(govenv deactivate)"` reads `_GOVENV_OLD_PATH` and the `GOVENV*` variables from the environment and prints shell code that restores `PATH` and unsets them. It's a subcommand rather than a sourced shell function so it never shadows (or gets shadowed by) Python venv's `deactivate`.
 
 There is no daemon, no cache, no global state — just a directory with a binary and a shell script.
+
+## Releasing
+
+`govenv` is distributed via `go install`, so a release is just a git tag. `go install github.com/kenk667/govenv@latest` resolves to the **highest semver tag — not the newest commit on `main`**. Merging a PR therefore ships nothing to users on its own; you must cut a new tag.
+
+```sh
+git tag -a vX.Y.Z <commit> -m "vX.Y.Z — summary"
+git push origin vX.Y.Z
+gh release create vX.Y.Z --title vX.Y.Z --notes "release notes"
+```
+
+Bump per [semver](https://semver.org/): patch (`v0.1.x`) for fixes, minor (`v0.2.0`) for new flags/features, major (`v1.0.0`) once the CLI is stable.
+
+The public Go module proxy caches its `@latest` answer for a short while (minutes to ~30 min) after a new tag is pushed, so `@latest` may briefly still resolve to the previous version. To bypass the lag, install the exact tag (`go install github.com/kenk667/govenv@vX.Y.Z`) or skip the proxy (`GOPROXY=direct go install github.com/kenk667/govenv@latest`).
