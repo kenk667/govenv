@@ -16,7 +16,7 @@ Go does not really have this. The standard answers are some mix of `go run ./...
 go install github.com/kenk667/govenv@latest
 ```
 
-Run `govenv --help` for an overview of commands and options, or `govenv <command> -h` (e.g. `govenv list-go -h`) for command-specific help.
+Run `govenv --help` for an overview of commands and options, or `govenv <command> -h` (e.g. `govenv list-go -h`) for command-specific help. `govenv --version` (or `-v`) prints the installed version.
 
 ### Man page
 
